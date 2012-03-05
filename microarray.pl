@@ -3,6 +3,7 @@
 use strict;
 use List::MoreUtils qw/all any each_array/;
 use Scalar::Util qw/looks_like_number/;
+use Statistics::Basic qw/mean stddev/;
  
 ######################
 #Microarray Filter and Fold Change Finder
@@ -68,10 +69,6 @@ my $filterNumber = scalar @filterNames;
  
 print "\nThere are $filterNumber genes that meet filter criteria.\n";
  
-my $controlMean;
-my $controlSD;
-my $sampleMean;
-my $sampleSD;
 my $fldScore = 0;
 my %scoreHash = ();
 my $reporter = 0;
@@ -87,9 +84,10 @@ for (my $i = 0; $i < $filterNumber; $i++) {
         for (my $k = 20; $k < 41; $k++) {
                 push(@sampleArray, $filterData[$i][$k]);
         }
- 
-        ($controlMean,$controlSD) = average_and_stdev(\@controlArray);
-        ($sampleMean,$sampleSD) = average_and_stdev(\@sampleArray);
+        my $controlMean = mean(\@controlArray);
+        my $controlSD = stddev(\@controlArray);
+        my $sampleMean = mean(\@sampleArray);
+        my $sampleSD = stddev(\@sampleArray);
         my $fldNum = $controlMean - $sampleMean;
         my $fldDenom = $controlSD + $sampleSD;
         $fldScore = $fldNum / $fldDenom;
@@ -111,35 +109,4 @@ foreach my $key (sort keys %scoreHash) {
         print "\n$scoreCounter. $filterNames[$scoreHash{$key}]";
         $scoreCounter++;
 }
-       
  
-               
-######################
-sub average_and_stdev
-######################
-#This proceedure takes the address of an array as input.
-#to use this subroutine, input the following line
-#($average,$stdev) = average_and_stdev(\@input_array)
-#which will take your @input_array and output its $average and $stdev
-#It returns the mean and standard deviation of the values in the array
-{
-    my ($array) = @_;
-    my $sum = 0;
-    my $deviations = 0;
-    for my $elt (@$array) {
-        $sum += $elt;
-    }
-    my $mean = $sum/@$array;
-    for my $elt (@$array)
-    {
-        #Find the deviation from the mean and square it.
-        $deviations = $deviations + ($elt - $mean)**2;
-    }
-    #Take the square root of the S2 to find S.
-    my $stdev = sqrt($deviations/(@$array-1));
-    #Return the mean and standard deviation.
-    return $mean,$stdev;
-}              
-##########################
-##########################
-
